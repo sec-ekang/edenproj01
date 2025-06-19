@@ -1,0 +1,57 @@
+---
+- name: Install GitLeaks
+  ansible.builtin.get_url:
+    url: "[https://github.com/gitleaks/gitleaks/releases/download/v](https://github.com/gitleaks/gitleaks/releases/download/v){{ gitleaks_version }}/gitleaks_{{ gitleaks_version }}_linux_x64.tar.gz"
+    dest: "/tmp/gitleaks.tar.gz"
+
+- name: Unarchive GitLeaks and move to bin
+  ansible.builtin.unarchive:
+    src: "/tmp/gitleaks.tar.gz"
+    dest: "/usr/local/bin/"
+    remote_src: yes
+    extra_opts: ['--strip-components=0', 'gitleaks']
+    mode: '0755'
+
+- name: Install Trivy
+  ansible.builtin.get_url:
+    url: "[https://github.com/aquasecurity/trivy/releases/download/v](https://github.com/aquasecurity/trivy/releases/download/v){{ trivy_version }}/trivy_{{ trivy_version }}_Linux-64bit.deb"
+    dest: "/tmp/trivy.deb"
+
+- name: Install Trivy from deb
+  ansible.builtin.apt:
+    deb: "/tmp/trivy.deb"
+
+- name: Install yq
+  ansible.builtin.get_url:
+    url: "[https://github.com/mikefarah/yq/releases/download/](https://github.com/mikefarah/yq/releases/download/){{ yq_version }}/yq_linux_amd64"
+    dest: /usr/local/bin/yq
+    mode: '0755'
+
+- name: Install kubectl
+  ansible.builtin.get_url:
+    url: "[https://dl.k8s.io/release/v](https://dl.k8s.io/release/v){{ kubectl_version }}/bin/linux/amd64/kubectl"
+    dest: /usr/local/bin/kubectl
+    mode: '0755'
+
+- name: Install ArgoCD CLI
+  ansible.builtin.get_url:
+    url: "[https://github.com/argoproj/argo-cd/releases/download/](https://github.com/argoproj/argo-cd/releases/download/){{ argocd_version }}/argocd-linux-amd64"
+    dest: /usr/local/bin/argocd
+    mode: '0755'
+
+- name: Download Sonar Scanner
+  ansible.builtin.get_url:
+    url: "[https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-](https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-){{ sonar_scanner_version }}-linux.zip"
+    dest: "/tmp/sonar-scanner.zip"
+
+- name: Unarchive Sonar Scanner
+  ansible.builtin.unarchive:
+    src: "/tmp/sonar-scanner.zip"
+    dest: /opt/
+    remote_src: yes
+
+- name: Create symlink for Sonar Scanner
+  ansible.builtin.file:
+    src: "/opt/sonar-scanner-{{ sonar_scanner_version }}-linux/bin/sonar-scanner"
+    dest: "/usr/local/bin/sonar-scanner"
+    state: link

@@ -1,0 +1,70 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders-db
+  namespace: sock-shop
+  labels:
+    name: orders-db
+    app: sock-shop
+    role: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: orders-db
+      app: sock-shop
+      role: database
+  template:
+    metadata:
+      labels:
+        name: orders-db
+        app: sock-shop
+        role: database
+    spec:
+      containers:
+      - name: orders-db
+        image: mongo:4.2
+        ports:
+        - name: mongo
+          containerPort: 27017
+        securityContext:
+          capabilities:
+            drop:
+              - all
+            add:
+              - CHOWN
+              - SETGID
+              - SETUID
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp-volume
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "128Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+        livenessProbe:
+          exec:
+            command: ["mongo", "--eval", "db.adminCommand('ping')"]
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
+        readinessProbe:
+          exec:
+            command: ["mongo", "--eval", "db.adminCommand('ping')"]
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 6
+      volumes:
+      - name: tmp-volume
+        emptyDir:
+          medium: Memory
+      # For production, use a PersistentVolumeClaim instead of emptyDir.
+      nodeSelector:
+        beta.kubernetes.io/os: linux

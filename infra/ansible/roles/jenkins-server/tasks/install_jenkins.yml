@@ -1,0 +1,23 @@
+---
+- name: Install Java
+  ansible.builtin.apt:
+    name: "{{ java_package }}"
+    state: present
+
+- name: Add Jenkins GPG key
+  ansible.builtin.get_url:
+    url: "{{ jenkins_repo_key_url }}"
+    dest: /usr/share/keyrings/jenkins-keyring.asc
+    mode: '0644'
+    force: yes
+
+- name: Add Jenkins repository
+  ansible.builtin.apt_repository:
+    repo: "{{ jenkins_repo_url }}"
+    state: present
+
+- name: Install Jenkins
+  ansible.builtin.apt:
+    name: jenkins
+    state: present
+  notify: Restart Jenkins

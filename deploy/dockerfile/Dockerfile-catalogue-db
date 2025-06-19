@@ -1,0 +1,7 @@
+FROM mariadb:12
+
+# Set MariaDB database name
+ENV MARIADB_DATABASE=socksdb
+
+# Copy DB init SQL file into the image
+COPY dump.sql /docker-entrypoint-initdb.d/

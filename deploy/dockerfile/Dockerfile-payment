@@ -1,0 +1,36 @@
+# Stage 1: Build
+FROM registry.access.redhat.com/ubi9/go-toolset:latest as builder
+
+WORKDIR /go/src/github.com/microservices-demo/payment
+
+# Copy source code (assume local build context)
+COPY . .
+
+# Build the Go app statically
+RUN CGO_ENABLED=0 GOOS=linux go build -mod=readonly -a -installsuffix cgo -o /app ./cmd/paymentsvc
+
+# Stage 2: Minimal runtime
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
+
+ENV SERVICE_USER=myuser \
+    SERVICE_UID=10001 \
+    SERVICE_GROUP=mygroup \
+    SERVICE_GID=10001
+
+USER 0
+RUN microdnf update -y \
+    && microdnf install -y ca-certificates tzdata \
+    && groupadd -r -g ${SERVICE_GID} ${SERVICE_GROUP} \
+    && useradd -r -u ${SERVICE_UID} -g ${SERVICE_GROUP} -m -d /home/${SERVICE_USER} -s /sbin/nologin ${SERVICE_USER}
+
+WORKDIR /payment
+
+COPY --from=builder /app /payment/app
+
+RUN chown -R ${SERVICE_USER}:${SERVICE_GROUP} /payment/app
+
+USER ${SERVICE_USER}
+
+EXPOSE 8080
+
+CMD ["/payment/app", "-port=8080"]

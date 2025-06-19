@@ -1,0 +1,28 @@
+---
+- name: Add Docker GPG key
+  ansible.builtin.get_url:
+    url: "{{ docker_repo_key_url }}"
+    dest: /etc/apt/keyrings/docker.asc
+    mode: '0644'
+    force: yes
+
+- name: Add Docker repository
+  ansible.builtin.apt_repository:
+    repo: "{{ docker_repo_url }}"
+    state: present
+
+- name: Install Docker Engine
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+    state: present
+
+- name: Add 'jenkins' user to the 'docker' group
+  ansible.builtin.user:
+    name: jenkins
+    groups: docker
+    append: yes
+  notify: Restart Jenkins
+

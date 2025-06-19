@@ -1,0 +1,28 @@
+---
+# roles/jenkins-server/vars/main.yml
+
+# Java package to install
+java_package: openjdk-17-jdk
+
+# Jenkins APT repository configuration
+jenkins_repo_key_url: "https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key"
+jenkins_repo_url: "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/"
+
+# Docker APT repository configuration
+docker_repo_key_url: "https://download.docker.com/linux/ubuntu/gpg"
+docker_repo_url: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename }} stable"
+
+# Versions for pipeline CLI tools
+gitleaks_version: "8.27.2"
+trivy_version: "0.63.0"
+yq_version: "v4.45.4"
+kubectl_version: "1.33.1"
+argocd_version: "v2.14.14"
+sonar_scanner_version: "7.1.0.4889"
+
+# Additional utilities
+helm_version: "v3.18.3"
+kustomize_version: "v5.6.0"
+nodejs_version: "22.x"
+snyk_version: "1.1297.2"
+slack_cli_version: "2.2.10"

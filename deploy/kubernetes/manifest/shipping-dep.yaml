@@ -1,0 +1,76 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shipping
+  namespace: sock-shop
+  labels:
+    name: shipping
+    app: sock-shop
+    role: shipping
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: shipping
+      app: sock-shop
+      role: shipping
+  template:
+    metadata:
+      labels:
+        name: shipping
+        app: sock-shop
+        role: shipping
+    spec:
+      containers:
+      - name: shipping
+        image: weaveworksdemos/shipping:0.4.8
+        env:
+         - name: ZIPKIN
+           value: zipkin.jaeger.svc.cluster.local
+         - name: JAVA_OPTS
+           value: "-Xms64m -Xmx128m -XX:+UseG1GC -Djava.security.egd=file:/dev/urandom -Dspring.zipkin.enabled=false"
+        resources:
+          limits:
+            cpu: "300m"
+            memory: "500Mi"
+          requests:
+            cpu: "100m"
+            memory: "300Mi"
+        ports:
+        - name: http
+          containerPort: 80
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 10001
+          capabilities:
+            drop:
+              - all
+            add:
+              - NET_BIND_SERVICE
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp-volume
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 6
+      volumes:
+      - name: tmp-volume
+        emptyDir:
+          medium: Memory
+      nodeSelector:
+        beta.kubernetes.io/os: linux

@@ -1,0 +1,71 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: queue-master
+  namespace: sock-shop
+  labels:
+    name: queue-master
+    app: sock-shop
+    role: queue-master
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: queue-master
+      app: sock-shop
+      role: queue-master
+  template:
+    metadata:
+      labels:
+        name: queue-master
+        app: sock-shop
+        role: queue-master
+      # Uncomment if using Prometheus
+      # annotations:
+      #   prometheus.io/scrape: "true"
+      #   prometheus.io/port: "80"
+    spec:
+      containers:
+      - name: queue-master
+        image: weaveworksdemos/queue-master:0.3.1
+        env:
+         - name: JAVA_OPTS
+           value: "-Xms64m -Xmx128m -XX:+UseG1GC -Djava.security.egd=file:/dev/urandom -Dspring.zipkin.enabled=false"
+        resources:
+          limits:
+            cpu: "300m"
+            memory: "500Mi"
+          requests:
+            cpu: "100m"
+            memory: "300Mi"
+        ports:
+        - name: http
+          containerPort: 80
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 10001
+          capabilities:
+            drop:
+              - all
+            add:
+              - NET_BIND_SERVICE
+          readOnlyRootFilesystem: true
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 6
+      nodeSelector:
+        beta.kubernetes.io/os: linux

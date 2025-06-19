@@ -1,0 +1,77 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalogue-db
+  namespace: sock-shop
+  labels:
+    name: catalogue-db
+    app: sock-shop
+    role: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: catalogue-db
+      app: sock-shop
+      role: database
+  template:
+    metadata:
+      labels:
+        name: catalogue-db
+        app: sock-shop
+        role: database
+    spec:
+      containers:
+      - name: catalogue-db
+        image: weaveworksdemos/catalogue-db:0.3.0
+        env:
+          - name: MYSQL_ROOT_PASSWORD
+            value: fake_password
+          - name: MYSQL_DATABASE
+            value: socksdb
+        ports:
+          - name: mysql
+            containerPort: 3306
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          exec:
+            command:
+              - mysqladmin
+              - ping
+              - -h
+              - 127.0.0.1
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
+        readinessProbe:
+          exec:
+            command:
+              - mysqladmin
+              - ping
+              - -h
+              - 127.0.0.1
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 6
+        securityContext:
+          # These options are recommended if the image supports it
+          runAsNonRoot: true
+          runAsUser: 999  # MySQL often uses UID 999, adjust if needed
+          capabilities:
+            drop: [ "all" ]
+          allowPrivilegeEscalation: false
+      volumes:
+      - name: mysql-tmp
+        emptyDir:
+          medium: Memory
+      nodeSelector:
+        beta.kubernetes.io/os: linux

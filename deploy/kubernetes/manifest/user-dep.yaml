@@ -1,0 +1,67 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user
+  namespace: sock-shop
+  labels:
+    name: user
+    app: sock-shop
+    role: user
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: user
+      app: sock-shop
+      role: user
+  template:
+    metadata:
+      labels:
+        name: user
+        app: sock-shop
+        role: user
+    spec:
+      containers:
+      - name: user
+        image: weaveworksdemos/user:0.4.7
+        resources:
+          limits:
+            cpu: "300m"
+            memory: "200Mi"
+          requests:
+            cpu: "100m"
+            memory: "100Mi"
+        ports:
+        - name: http
+          containerPort: 80
+        env:
+        - name: MONGO
+          value: user-db:27017
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 10001
+          capabilities:
+            drop:
+              - all
+            add:
+              - NET_BIND_SERVICE
+          readOnlyRootFilesystem: true
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 6
+      nodeSelector:
+        beta.kubernetes.io/os: linux

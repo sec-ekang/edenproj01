@@ -1,0 +1,62 @@
+{{- range $svcName, $svc := .Values.services }}
+{{- if $svc.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $svcName }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: {{ $svcName }}
+    release: {{ $.Release.Name }}
+spec:
+  replicas: {{ $svc.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ $svcName }}
+      release: {{ $.Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ $svcName }}
+        release: {{ $.Release.Name }}
+    spec:
+      containers:
+        - name: {{ $svcName }}
+          image: "{{ $svc.image.repository }}:{{ $svc.image.tag }}"
+          imagePullPolicy: {{ $svc.image.pullPolicy }}
+          {{- if $svc.env }}
+          env:
+          {{- toYaml $svc.env | nindent 12 }}
+          {{- end }}
+          {{- if $svc.resources }}
+          resources:
+          {{- toYaml $svc.resources | nindent 12 }}
+          {{- end }}
+          ports:
+            - containerPort: {{ $svc.service.port }}
+              name: http
+          {{- if $svc.securityContext }}
+          securityContext:
+          {{- toYaml $svc.securityContext | nindent 12 }}
+          {{- end }}
+          {{- if $svc.volumeMounts }}
+          volumeMounts:
+          {{- toYaml $svc.volumeMounts | nindent 12 }}
+          {{- end }}
+          {{- if $svc.livenessProbe }}
+          livenessProbe:
+          {{- toYaml $svc.livenessProbe | nindent 12 }}
+          {{- end }}
+          {{- if $svc.readinessProbe }}
+          readinessProbe:
+          {{- toYaml $svc.readinessProbe | nindent 12 }}
+          {{- end }}
+      {{- if $svc.volumes }}
+      volumes:
+      {{- toYaml $svc.volumes | nindent 8 }}
+      {{- end }}
+      nodeSelector:
+      {{- toYaml $.Values.global.nodeSelector | nindent 8 }}
+---
+{{- end }}
+{{- end }}

@@ -1,0 +1,38 @@
+# Stage 1: Build
+FROM registry.access.redhat.com/ubi9/go-toolset:latest as builder
+
+WORKDIR /build
+
+# Copy the source code
+COPY . .
+
+# Download Go dependencies and build statically
+RUN go mod tidy && \
+    CGO_ENABLED=0 GOOS=linux go build -o user ./cmd/user
+
+# Stage 2: Minimal runtime
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
+
+ENV SERVICE_USER=myuser \
+    SERVICE_UID=10001 \
+    SERVICE_GROUP=mygroup \
+    SERVICE_GID=10001
+
+USER 0
+RUN microdnf update -y \
+    && microdnf install -y ca-certificates tzdata \
+    && groupadd -r -g ${SERVICE_GID} ${SERVICE_GROUP} \
+    && useradd -r -u ${SERVICE_UID} -g ${SERVICE_GROUP} -m -d /home/${SERVICE_USER} -s /sbin/nologin ${SERVICE_USER} \
+    && mkdir -p /opt
+
+WORKDIR /opt
+
+EXPOSE 8080
+
+COPY --from=builder /build/user /opt/user
+
+RUN chown ${SERVICE_USER}:${SERVICE_GROUP} /opt/user
+
+USER ${SERVICE_USER}
+
+CMD ["/opt/user", "-port=8080"]

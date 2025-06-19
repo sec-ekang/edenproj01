@@ -1,0 +1,11 @@
+---
+- name: Install base dependencies
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - software-properties-common
+      - git
+      - unzip
+    state: present
