@@ -1,0 +1,10 @@
+# ------------------------------------------------------------------------------
+# qa.tfvars.example
+# ------------------------------------------------------------------------------
+
+environment = "qa"
+key_name    = "your-ec2-key-pair-name"
+acm_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/your-certificate-id"
+
+# Restrict access to the QA team's IP range
+qa_bastion_ssh_cidrs = ["203.0.113.0/24"] 

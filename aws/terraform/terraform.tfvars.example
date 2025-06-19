@@ -1,0 +1,19 @@
+ # ------------------------------------------------------------------------------
+# terraform.tfvars.example
+#
+# This is an example file. Users should copy this to `terraform.tfvars`
+# and fill in the required values. This file is used to provide values
+# for the variables defined in variables.tf.
+# It should be added to .gitignore to prevent committing sensitive info.
+# ------------------------------------------------------------------------------
+
+# region = "us-east-1"
+#
+# # You must create this key pair in the AWS EC2 console first
+# key_name = "your-ec2-key-pair-name"
+#
+# # You must create this certificate in AWS Certificate Manager first
+# acm_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/your-certificate-id"
+#
+# # It is highly recommended to restrict this to your personal/work IP address
+# # bastion_ssh_cidr = ["123.45.67.89/32"]

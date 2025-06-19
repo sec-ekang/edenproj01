@@ -1,0 +1,11 @@
+# ------------------------------------------------------------------------------
+# playbook-bastion.yml
+# ------------------------------------------------------------------------------
+- name: Configure Bastion Host
+  hosts: bastion
+  become: true
+  roles:
+    - role: bastion_setup
+  vars:
+    aws_region: "us-east-1" # Change if needed
+    eks_cluster_name: "sock-shop-cluster" # Change if needed 

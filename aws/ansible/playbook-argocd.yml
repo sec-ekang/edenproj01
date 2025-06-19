@@ -1,0 +1,9 @@
+# ------------------------------------------------------------------------------
+# playbook-argocd.yml
+# ------------------------------------------------------------------------------
+- name: Install ArgoCD on EKS Cluster
+  hosts: bastion # This runs on the bastion, which has kubectl access
+  connection: local
+  become: false # No sudo needed for kubectl commands
+  roles:
+    - role: argocd_install 

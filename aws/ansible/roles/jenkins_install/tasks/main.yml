@@ -1,0 +1,51 @@
+# ------------------------------------------------------------------------------
+# roles/jenkins_install/tasks/main.yml
+# ------------------------------------------------------------------------------
+- name: Update all system packages
+  ansible.builtin.package:
+    name: "*"
+    state: latest
+  vars:
+    ansible_command_timeout: 600
+
+- name: Add Jenkins repo key
+  ansible.builtin.rpm_key:
+    state: present
+    key: https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+
+- name: Add Jenkins repository
+  ansible.builtin.yum_repository:
+    name: jenkins
+    description: Jenkins-stable
+    baseurl: http://pkg.jenkins.io/redhat-stable
+    gpgcheck: yes
+    gpgkey: https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+
+- name: Install Java 11 and Jenkins
+  ansible.builtin.package:
+    name:
+      - java-11-amazon-corretto
+      - jenkins
+    state: present
+    update_cache: true
+
+- name: Ensure Jenkins is started and enabled at boot
+  ansible.builtin.service:
+    name: jenkins
+    state: started
+    enabled: true
+
+- name: Wait for Jenkins to start up
+  ansible.builtin.wait_for:
+    port: 8080
+    delay: 15
+    timeout: 300
+  
+- name: Get initial admin password
+  ansible.builtin.shell: "cat /var/lib/jenkins/secrets/initialAdminPassword"
+  register: jenkins_password
+  changed_when: false
+
+- name: Display initial admin password
+  ansible.builtin.debug:
+    msg: "Jenkins initial admin password -> {{ jenkins_password.stdout }}" 

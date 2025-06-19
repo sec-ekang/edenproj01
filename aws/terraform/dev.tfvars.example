@@ -1,0 +1,14 @@
+# ------------------------------------------------------------------------------
+# dev.tfvars.example
+#
+# Copy to dev.tfvars and fill in values.
+# Run with: terraform apply -var-file="dev.tfvars"
+# ------------------------------------------------------------------------------
+
+environment = "dev"
+
+# You must create this key pair in the AWS EC2 console first
+key_name = "your-ec2-key-pair-name"
+
+# You must create this certificate in AWS Certificate Manager first
+acm_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/your-certificate-id" 

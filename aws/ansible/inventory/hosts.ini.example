@@ -1,0 +1,21 @@
+# ------------------------------------------------------------------------------
+# inventory/hosts.ini.example
+#
+# INSTRUCTIONS:
+# 1. Copy this file to `inventory/hosts.ini`.
+# 2. Replace the placeholder IPs with the actual IPs from your Terraform output.
+# 3. The bastion host uses its public IP.
+# 4. The jenkins host uses its private IP, as we will connect via the bastion.
+# ------------------------------------------------------------------------------
+[bastion]
+bastion_host ansible_host=YOUR_BASTION_PUBLIC_IP
+
+[jenkins]
+jenkins_host ansible_host=YOUR_JENKINS_PRIVATE_IP
+
+[all:vars]
+ansible_user=ec2-user
+ansible_private_key_file=/path/to/your-key.pem
+
+# This tells Ansible to connect to Jenkins via the Bastion host.
+ansible_ssh_common_args='-o StrictHostKeyChecking=no -o ProxyCommand="ssh -W %h:%p -q ec2-user@YOUR_BASTION_PUBLIC_IP"' 

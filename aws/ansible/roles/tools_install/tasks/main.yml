@@ -1,0 +1,80 @@
+# ------------------------------------------------------------------------------
+# roles/tools_install/tasks/main.yml
+#
+# This role installs all the additional CLI tools on the Jenkins server.
+# ------------------------------------------------------------------------------
+- name: Install base dependencies
+  ansible.builtin.package:
+    name:
+      - git
+      - unzip
+      - docker
+    state: present
+
+- name: Start and enable Docker service
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Add ec2-user to the docker group
+  ansible.builtin.user:
+    name: ec2-user
+    groups: docker
+    append: yes
+
+- name: Add jenkins user to the docker group
+  ansible.builtin.user:
+    name: jenkins
+    groups: docker
+    append: yes
+  
+- name: Install kubectl
+  ansible.builtin.get_url:
+    url: "https://dl.k8s.io/release/v1.28.3/bin/linux/amd64/kubectl"
+    dest: /usr/local/bin/kubectl
+    mode: '0755'
+
+- name: Install aws-iam-authenticator
+  ansible.builtin.get_url:
+    url: "https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.6.2/aws-iam-authenticator_0.6.2_linux_amd64"
+    dest: /usr/local/bin/aws-iam-authenticator
+    mode: '0755'
+
+- name: Install Helm
+  ansible.builtin.unarchive:
+    src: https://get.helm.sh/helm-v3.15.1-linux-amd64.tar.gz
+    dest: /usr/local/bin/
+    remote_src: true
+    extra_opts: [--strip-components=1, linux-amd64/helm]
+
+- name: Install ArgoCD CLI
+  ansible.builtin.get_url:
+    url: "https://github.com/argoproj/argo-cd/releases/download/v2.11.1/argocd-linux-amd64"
+    dest: /usr/local/bin/argocd
+    mode: '0755'
+
+- name: Install Kustomize
+  ansible.builtin.get_url:
+    url: "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.3.0/kustomize_v5.3.0_linux_amd64.tar.gz"
+    dest: /tmp/kustomize.tar.gz
+  
+- name: Unarchive Kustomize
+  ansible.builtin.unarchive:
+    src: /tmp/kustomize.tar.gz
+    dest: /usr/local/bin/
+    remote_src: true
+
+- name: Install Trivy
+  ansible.builtin.unarchive:
+    src: https://github.com/aquasecurity/trivy/releases/download/v0.51.1/trivy_0.51.1_Linux-64bit.tar.gz
+    dest: /usr/local/bin/
+    remote_src: true
+    extra_opts: [trivy]
+
+- name: Configure kubectl for the jenkins user
+  ansible.builtin.shell: "aws eks update-kubeconfig --region {{ aws_region }} --name {{ eks_cluster_name }}"
+  args:
+    creates: "{{ jenkins_user_dir }}/.kube/config"
+  become: true
+  become_user: jenkins 

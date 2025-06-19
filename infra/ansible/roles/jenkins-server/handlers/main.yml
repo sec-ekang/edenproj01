@@ -1,6 +1,0 @@
----
-# handlers file for jenkins-server
-- name: Restart Jenkins
-  ansible.builtin.service:
-    name: jenkins
-    state: restarted

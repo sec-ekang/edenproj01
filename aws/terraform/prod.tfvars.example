@@ -1,0 +1,10 @@
+# ------------------------------------------------------------------------------
+# prod.tfvars.example
+# ------------------------------------------------------------------------------
+
+environment = "prod"
+key_name    = "your-ec2-key-pair-name"
+acm_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/your-certificate-id"
+
+# Restrict access to authorized admin IPs only
+staging_prod_bastion_ssh_cidrs = ["198.51.100.1/32", "198.51.100.2/32"] 

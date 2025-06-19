@@ -1,0 +1,14 @@
+# ------------------------------------------------------------------------------
+# playbook-jenkins.yml
+# ------------------------------------------------------------------------------
+- name: Configure Jenkins Server
+  hosts: jenkins
+  become: true
+  roles:
+    - role: jenkins_install
+    - role: tools_install
+  vars:
+    aws_region: "us-east-1" # Change if needed
+    eks_cluster_name: "sock-shop-cluster" # Change if needed
+    ansible_user_dir: "/home/ec2-user" # Change if user is different
+    jenkins_user_dir: "/var/lib/jenkins" 
