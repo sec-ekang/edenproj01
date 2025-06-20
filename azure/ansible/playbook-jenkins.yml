@@ -1,0 +1,14 @@
+# ------------------------------------------------------------------------------
+# playbook-jenkins.yml
+# ------------------------------------------------------------------------------
+- name: Configure Jenkins Server
+  hosts: jenkins
+  become: true
+  roles:
+    - role: jenkins_install
+    - role: tools_install
+  vars:
+    resource_group_name: "rg-sock-shop" # Change if needed
+    aks_cluster_name: "aks-sock-shop" # Change if needed
+    ansible_user_dir: "/home/azureuser" # Change if user is different
+    jenkins_user_dir: "/var/lib/jenkins" 

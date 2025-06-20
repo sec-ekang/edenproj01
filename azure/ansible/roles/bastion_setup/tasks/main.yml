@@ -1,0 +1,59 @@
+# ------------------------------------------------------------------------------
+# roles/bastion_setup/tasks/main.yml (Azure)
+# ------------------------------------------------------------------------------
+- name: Update apt cache and install prerequisites
+  ansible.builtin.apt:
+    update_cache: yes
+    name:
+      - ca-certificates
+      - curl
+      - apt-transport-https
+      - lsb-release
+      - gnupg
+    state: present
+
+- name: Add Azure CLI repository key
+  ansible.builtin.get_url:
+    url: https://packages.microsoft.com/keys/microsoft.asc
+    dest: /etc/apt/trusted.gpg.d/microsoft.asc
+    mode: '0644'
+
+- name: Add Azure CLI repository
+  ansible.builtin.apt_repository:
+    repo: "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ {{ ansible_distribution_release }} main"
+    state: present
+    filename: azure-cli
+
+- name: Install Azure CLI
+  ansible.builtin.apt:
+    name: azure-cli
+    state: present
+    update_cache: yes
+
+- name: Install kubectl
+  ansible.builtin.apt:
+    name: kubectl
+    state: present
+
+- name: Ensure .kube directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_user_dir }}/.kube"
+    state: directory
+    mode: '0755'
+  become: false
+
+- name: Configure kubectl to access AKS cluster
+  ansible.builtin.shell: "az login --identity && az aks get-credentials --resource-group {{ resource_group_name }} --name {{ aks_cluster_name }} --overwrite-existing"
+  args:
+    creates: "{{ ansible_user_dir }}/.kube/config"
+  become: false
+
+- name: Test kubectl connection
+  ansible.builtin.command: "kubectl get nodes"
+  register: kubectl_get_nodes
+  changed_when: false
+  become: false
+
+- name: Display kubectl get nodes output
+  ansible.builtin.debug:
+    msg: "{{ kubectl_get_nodes.stdout }}" 

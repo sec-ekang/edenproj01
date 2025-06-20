@@ -1,6 +1,9 @@
 # Stage 1: Build
 FROM registry.access.redhat.com/ubi9/go-toolset:latest as builder
 
+# Add labels for metadata
+LABEL maintainer="Sock Shop Team"       description="Builder stage for Sock Shop user service"
+
 WORKDIR /build
 
 # Copy the source code
@@ -13,6 +16,9 @@ RUN go mod tidy && \
 # Stage 2: Minimal runtime
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
+# Add labels for metadata
+LABEL maintainer="Sock Shop Team"       description="Production image for Sock Shop user service"
+
 ENV SERVICE_USER=myuser \
     SERVICE_UID=10001 \
     SERVICE_GROUP=mygroup \
@@ -20,7 +26,8 @@ ENV SERVICE_USER=myuser \
 
 USER 0
 RUN microdnf update -y \
-    && microdnf install -y ca-certificates tzdata \
+    && microdnf install -y ca-certificates tzdata nc \
+    && microdnf clean all \
     && groupadd -r -g ${SERVICE_GID} ${SERVICE_GROUP} \
     && useradd -r -u ${SERVICE_UID} -g ${SERVICE_GROUP} -m -d /home/${SERVICE_USER} -s /sbin/nologin ${SERVICE_USER} \
     && mkdir -p /opt
@@ -34,5 +41,7 @@ COPY --from=builder /build/user /opt/user
 RUN chown ${SERVICE_USER}:${SERVICE_GROUP} /opt/user
 
 USER ${SERVICE_USER}
+
+HEALTHCHECK --interval=30s --timeout=3s   CMD nc -z 127.0.0.1 8080 || exit 1
 
 CMD ["/opt/user", "-port=8080"]

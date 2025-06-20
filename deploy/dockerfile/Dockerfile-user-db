@@ -1,11 +1,21 @@
 # Stage 1: Fetch database initialization scripts from user repo
 FROM registry.access.redhat.com/ubi9/go-toolset:latest as builder
 
+# Add labels for metadata
+LABEL maintainer="Sock Shop Team"       description="Builder stage for Sock Shop user-db"
+
+# Parameterize git clone
+ARG USER_REPO=https://github.com/microservices-demo/user.git
+ARG USER_REPO_COMMIT=main
+
 WORKDIR /tmp
-RUN git clone <https://github.com/microservices-demo/user.git>
+RUN git clone ${USER_REPO} && cd user && git checkout ${USER_REPO_COMMIT}
 
 # Stage 2: Create the MongoDB runtime container
 FROM mongo:7
+
+# Add labels for metadata
+LABEL maintainer="Sock Shop Team"       description="Production image for Sock Shop user-db"
 
 # Add initialization scripts and custom files
 COPY --from=builder /tmp/user/docker/user-db/scripts /docker-entrypoint-initdb.d/

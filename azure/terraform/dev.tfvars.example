@@ -1,0 +1,7 @@
+resource_group_name = "sock-shop"
+environment           = "dev"
+location              = "East US"
+tags = {
+  environment = "dev"
+  project     = "sock-shop"
+} 

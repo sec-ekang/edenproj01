@@ -1,0 +1,50 @@
+# ------------------------------------------------------------------------------
+# roles/jenkins_install/tasks/main.yml (Azure)
+# ------------------------------------------------------------------------------
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: yes
+
+- name: Install Java (OpenJDK 11)
+  ansible.builtin.apt:
+    name: openjdk-11-jre
+    state: present
+
+- name: Add Jenkins repository key
+  ansible.builtin.get_url:
+    url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+    dest: /usr/share/keyrings/jenkins-keyring.asc
+    mode: '0644'
+
+- name: Add Jenkins repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/"
+    state: present
+    filename: jenkins
+
+- name: Install Jenkins
+  ansible.builtin.apt:
+    name: jenkins
+    state: present
+    update_cache: yes
+
+- name: Ensure Jenkins is started and enabled at boot
+  ansible.builtin.service:
+    name: jenkins
+    state: started
+    enabled: true
+
+- name: Wait for Jenkins to start up
+  ansible.builtin.wait_for:
+    port: 8080
+    delay: 15
+    timeout: 300
+
+- name: Get initial admin password
+  ansible.builtin.shell: "cat /var/lib/jenkins/secrets/initialAdminPassword"
+  register: jenkins_password
+  changed_when: false
+
+- name: Display initial admin password
+  ansible.builtin.debug:
+    msg: "Jenkins initial admin password -> {{ jenkins_password.stdout }}" 

@@ -1,0 +1,8 @@
+resource_group_name = "sock-shop"
+environment           = "qa"
+location              = "East US"
+qa_bastion_ssh_cidrs  = ["a.b.c.d/32"] # Replace with actual IPs
+tags = {
+  environment = "qa"
+  project     = "sock-shop"
+} 

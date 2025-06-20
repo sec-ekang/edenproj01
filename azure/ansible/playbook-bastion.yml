@@ -1,0 +1,12 @@
+# ------------------------------------------------------------------------------
+# playbook-bastion.yml
+# ------------------------------------------------------------------------------
+- name: Configure Bastion Host
+  hosts: bastion
+  become: true
+  roles:
+    - role: bastion_setup
+  vars:
+    resource_group_name: "rg-sock-shop" # Change if needed
+    aks_cluster_name: "aks-sock-shop" # Change if needed
+    ansible_user: "azureuser" # Change if needed 

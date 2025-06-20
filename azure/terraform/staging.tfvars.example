@@ -1,0 +1,8 @@
+resource_group_name = "sock-shop"
+environment                   = "staging"
+location                      = "East US"
+staging_prod_bastion_ssh_cidrs = ["e.f.g.h/32"] # Replace with actual IPs
+tags = {
+  environment = "staging"
+  project     = "sock-shop"
+} 
