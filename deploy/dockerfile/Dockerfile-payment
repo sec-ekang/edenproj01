@@ -1,22 +1,18 @@
 # Stage 1: Build
 FROM registry.access.redhat.com/ubi9/go-toolset:latest as builder
 
-# Add labels for metadata
-LABEL maintainer="Sock Shop Team"       description="Builder stage for Sock Shop payment service"
-
 WORKDIR /go/src/github.com/microservices-demo/payment
 
 # Copy source code (assume local build context)
 COPY . .
 
 # Build the Go app statically
-RUN CGO_ENABLED=0 GOOS=linux go build -mod=readonly -a -installsuffix cgo -o /app ./cmd/paymentsvc
+RUN go mod init github.com/microservices-demo/payment
+RUN go mod tidy
+RUN CGO_ENABLED=0 GOOS=linux go build -mod=readonly -a -installsuffix cgo -buildvcs=false -o ./app ./cmd/paymentsvc
 
 # Stage 2: Minimal runtime
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
-
-# Add labels for metadata
-LABEL maintainer="Sock Shop Team"       description="Production image for Sock Shop payment service"
 
 ENV SERVICE_USER=myuser \
     SERVICE_UID=10001 \
@@ -25,21 +21,18 @@ ENV SERVICE_USER=myuser \
 
 USER 0
 RUN microdnf update -y \
-    && microdnf install -y ca-certificates tzdata nc \
-    && microdnf clean all \
+    && microdnf install -y ca-certificates tzdata \
     && groupadd -r -g ${SERVICE_GID} ${SERVICE_GROUP} \
     && useradd -r -u ${SERVICE_UID} -g ${SERVICE_GROUP} -m -d /home/${SERVICE_USER} -s /sbin/nologin ${SERVICE_USER}
 
 WORKDIR /payment
 
-COPY --from=builder /app /payment/app
+COPY --from=builder /go/src/github.com/microservices-demo/payment/app /payment/app
 
 RUN chown -R ${SERVICE_USER}:${SERVICE_GROUP} /payment/app
 
 USER ${SERVICE_USER}
 
 EXPOSE 8080
-
-HEALTHCHECK --interval=30s --timeout=3s   CMD nc -z 127.0.0.1 8080 || exit 1
 
 CMD ["/payment/app", "-port=8080"]
