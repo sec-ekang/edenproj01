@@ -1,0 +1,15 @@
+DOCKER_HUB_USER=your_docker_hub_username
+APP_NAME=sockshop-frontend
+
+# Database Connection
+DATABASE_URL=postgresql://user:password@dev-db.example.com:5432/app_dev
+
+# API Keys
+API_KEY=dev_api_key_12345
+
+# Feature Flags
+FEATURE_FLAG_NEW_DASHBOARD=true
+FEATURE_FLAG_BETA_FUNCTIONS=true
+
+# Logging
+LOG_LEVEL=DEBUG 
