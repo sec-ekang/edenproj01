@@ -1,4 +1,7 @@
 pipeline {
+    parameters {
+        string(name: 'VERSION', defaultValue: '0.1', description: 'Front-end version tag, e.g., 0.1, 0.2')
+    }
     // Defines the agent and tools for the pipeline
     agent { 
         label 'docker-build-agent' 
@@ -13,7 +16,7 @@ pipeline {
         DOCKER_HUB_USER   = 'edenkang'                       // Your Docker Hub username
         APP_NAME          = 'test01-frontend'                // Application identifier (Docker Hub)
         IMAGE_NAME        = "${DOCKER_HUB_USER}/${APP_NAME}"  // Docker Hub image name
-        IMAGE_TAG         = "${env.BUILD_NUMBER}"              // Uses build number as Docker tag
+        IMAGE_TAG         = "${params.VERSION}"               // Uses provided version as Docker tag
     }
 
     // Configures global options for the pipeline
@@ -42,6 +45,84 @@ pipeline {
                 }
             }
         }
+
+        stage('Install & Cache Dependencies') {
+            steps {
+                script {
+                    try {
+                        dir('front-end') {
+                            // Removed cache block due to 'hashFiles' error; consider installing Pipeline Utility Steps Plugin if caching is desired.
+                            // Using 'nodejs' tool to ensure npm/yarn are available
+                            // Removed 'tool nodejs' as it caused 'No tool named nodejs found' error; assuming Node.js/Yarn are available in Docker agent.
+                            sh 'npx yarn install --frozen-lockfile' // Use npx to run yarn
+                        }
+                    } catch (err) {
+                        env.FAILED_STEP = 'Install & Cache Dependencies'
+                        throw err
+                    }
+                }
+            }
+        }
+
+        stage('Lint & Unit Tests') {
+            steps {
+                script {
+                    try {
+                        dir('front-end') {
+                            sh 'npm run lint'
+                            // Adapted for mocha which is used in this project
+                            sh 'npm test'
+                        }
+                    } catch (err) {
+                        env.FAILED_STEP = 'Lint & Unit Tests'
+                        throw err
+                    }
+                }
+            }
+            post {
+                always {
+                    // Archive JUnit report
+                    junit 'front-end/junit.xml'
+                }
+            }
+        }
+
+/*        stage('Simple Integration Tests') {
+            steps {
+                script {
+                    try {
+                        dir('front-end') {
+                            // Adapted for mocha which is used in this project
+                            sh 'npm run test:integration:simple -- --reporter mocha-junit-reporter --reporter-options mochaFile=integration-junit.xml'
+                        }
+                    } catch (err) {
+                        env.FAILED_STEP = 'Simple Integration Tests'
+                        throw err
+                    }
+                }
+            }
+            post {
+                always {
+                    // Archive integration test report
+                    junit 'front-end/integration-junit.xml'
+                }
+            }
+        }
+
+        stage('Smoke Tests') {
+            steps {
+                script {
+                    try {
+                        dir('front-end') {
+                            sh 'npm run test:smoke'
+                        }
+                    } catch (err) {
+                        env.FAILED_STEP = 'Smoke Tests'
+                        throw err
+                    }
+                }
+            }
+        }*/
       
         stage('Remove Previous Docker Image') {
             steps {
@@ -137,7 +218,9 @@ pipeline {
         always {
             // Cleans up the workspace and old images
             cleanWs()
-            sh 'docker image prune -a -f --filter "until=24h"'
+            //sh 'docker image prune -a -f --filter "until=24h"'
+            sh 'docker container prune -f'
+            sh 'docker system prune -a -f --volumes'
         }
         success {
             // Sends a success notification

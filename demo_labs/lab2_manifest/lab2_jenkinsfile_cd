@@ -1,0 +1,136 @@
+pipeline {
+    // Defines the agent and tools for the pipeline
+    agent any
+
+    parameters {
+        string(name: 'IMAGE_TAG', defaultValue: 'latest', description: 'Docker image tag to use')
+    }
+
+    // Defines environment variables
+    environment {
+        DOCKER_HUB_USER   = 'edenkang'                       // Your Docker Hub username
+        APP_NAME          = 'lab02-frontend'                // Application identifier (Docker Hub)
+        GITHUB_CREDENTIAL_ID = 'sec-ekang-lab2'
+        GIT_OPS_REPO_USER = 'sec-ekang'
+        GIT_OPS_REPO_NAME = 'sock-shop_gitops'
+        GIT_OPS_REPO = "${GIT_OPS_REPO_USER}/${GIT_OPS_REPO_NAME}"
+        
+        // Dynamically get the Git tag (version)
+        IMAGE_NAME        = "${DOCKER_HUB_USER}/${APP_NAME}"  // Docker Hub image name
+        ARGOCD_SERVER     = '192.168.68.82:443'    // Argo CD server address
+        ARGOCD_CRED_ID    = 'argocd-creds'               // Jenkins Credentials ID for Argo CD login
+        GIT_REPO_URL       = "https://github.com/${GIT_OPS_REPO}.git"  // Full GitOps repo URL
+        GIT_REPO_PATH      = 'deploy'                                 // Path to manifests in repo
+        GIT_REVISION       = 'main'                                   // Git branch or revision
+        APP_NAMESPACE      = 'sock-shop'                                // Kubernetes namespace
+        SLACK_TITLE = 'Lab02-Frontend-CD'
+    }
+
+    // Configures global options for the pipeline
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '20')) // Keeps the last 20 builds
+        disableConcurrentBuilds()                      // Prevents overlapping runs
+        timestamps()                                   // Adds timestamps to console output
+        ansiColor('xterm')                             // Enables colored logs
+    }
+
+    stages {
+
+        stage('GitOps-Update K8s Manifest') {
+            steps {
+                script {
+                    try {
+                        dir('gitops-repo') {
+                            checkout([$class: 'GitSCM', 
+                                branches: [[name: 'main']],
+                                userRemoteConfigs: [[credentialsId: "${env.GITHUB_CREDENTIAL_ID}", url: "https://github.com/${env.GIT_OPS_REPO}.git"]]
+                            ])
+                            sh "sed -i 's|image: ${env.IMAGE_NAME}:.*|image: ${env.IMAGE_NAME}:${params.IMAGE_TAG}|g' deploy/sock-shop_release_lab2.yaml"
+                            sh 'git config user.email "jenkins@example.com"'
+                            sh 'git config user.name "Jenkins"'
+                            sh 'git add deploy/sock-shop_release_lab2.yaml'
+                            withCredentials([usernamePassword(credentialsId: "${env.GITHUB_CREDENTIAL_ID}", passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
+                                sh "git commit -m 'Update ${env.APP_NAME} image to ${params.IMAGE_TAG} [skip ci]'"
+                                sh "git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/${env.GIT_OPS_REPO}.git HEAD:main"
+                            }
+                        }
+                    } catch (err) {
+                        env.FAILED_STEP = 'Update K8s Manifest'
+                        throw err
+                    }
+                }
+            }
+        }
+        stage('Ensure ArgoCD Application') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(
+                        credentialsId: "${env.ARGOCD_CRED_ID}",
+                        usernameVariable: 'ARGOCD_USER',
+                        passwordVariable: 'ARGOCD_PASS'
+                    )]) {
+                        sh "argocd login ${env.ARGOCD_SERVER} --username $ARGOCD_USER --password $ARGOCD_PASS --insecure"
+                        def exists = sh(script: "argocd app get ${env.APP_NAME}", returnStatus: true) == 0
+                        if (!exists) {
+                            sh """
+                              argocd app create ${env.APP_NAME} \
+                                --repo ${env.GIT_REPO_URL} \
+                                --path ${env.GIT_REPO_PATH} \
+                                --revision ${env.GIT_REVISION} \
+                                --dest-server https://kubernetes.default.svc \
+                                --dest-namespace ${env.APP_NAMESPACE}
+                            """
+                        } else {
+                            sh """
+                              argocd app set ${env.APP_NAME} \
+                                --repo ${env.GIT_REPO_URL} \
+                                --path ${env.GIT_REPO_PATH} \
+                                --revision ${env.GIT_REVISION}
+                            """
+                        }
+                    }
+                }
+            }
+        }
+        stage('ArgoCD Sync') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(
+                        credentialsId: "${env.ARGOCD_CRED_ID}",
+                        usernameVariable: 'ARGOCD_USER',
+                        passwordVariable: 'ARGOCD_PASS'
+                    )]) {
+                        sh """
+                            argocd login ${env.ARGOCD_SERVER} --username $ARGOCD_USER --password $ARGOCD_PASS --insecure
+                            argocd app sync ${env.APP_NAME} --timeout 300
+                            argocd app wait ${env.APP_NAME} --health --timeout 300
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Cleans up the workspace and old images
+            cleanWs()
+        }
+        success {
+            // Sends a success notification
+            slackSend(
+                channel: '#lab02',
+                color: 'good',
+                message: "✅ `${SLACK_TITLE}:${env.IMAGE_TAG}` succeeded!"
+            )
+        }
+        failure {
+            // Sends a failure notification
+            slackSend(
+                channel: '#lab02',
+                color: 'danger',
+                message: "🚨 `${SLACK_TITLE}:${env.IMAGE_TAG}` failed at stage: `${env.FAILED_STEP ?: env.STAGE_NAME}`"
+            )
+        }
+    }
+}
